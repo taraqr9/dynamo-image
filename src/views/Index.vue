@@ -1,6 +1,6 @@
 <script setup>
 import {db} from "@/firebase/init";
-import {addDoc, collection, deleteDoc, doc, getDocs, query} from "firebase/firestore";
+import {collection, updateDoc, doc, getDocs, query} from "firebase/firestore";
 import {onMounted, reactive, ref} from "vue";
 import LoadingAnimation from "../components/LoadingAnimation.vue";
 
@@ -15,7 +15,6 @@ const imageDetails = ref({
 async function getImages() {
   loading.value = true;
 
-  // Clear the allImages array by splicing it
   allImages.splice(0, allImages.length);
 
   const querySnap = await getDocs(query(collection(db, 'dimages')));
@@ -26,10 +25,21 @@ async function getImages() {
   loading.value = false;
 }
 
-async function uploadImage(e) {
-  // const image = e.target.files[0]; // if direct use upload image function then;
-  const image = e;
-  imageDetails.value.image_name = image.name;
+async function updateImage(image, event) {
+  const updatedImageFile = event.target.files[0];
+  const imageId = image.id;
+
+  if (!updatedImageFile) {
+    console.error('No file selected for update.');
+    return;
+  }
+
+  if (!updatedImageFile.type.startsWith('image/')) {
+    console.error('The selected file for update is not an image.');
+    return;
+  }
+
+  imageDetails.value.image_name = updatedImageFile.name;
 
   const imageResolutionPromise = new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -51,34 +61,28 @@ async function uploadImage(e) {
       };
     };
 
-    reader.readAsDataURL(image);
+    reader.readAsDataURL(updatedImageFile);
   });
 
   try {
     await imageResolutionPromise;
 
-    const colRef = collection(db, 'dimages');
+    const imageRef = doc(db, 'dimages', imageId);
 
-    await addDoc(colRef, imageDetails.value);
+    await updateDoc(imageRef, {
+      image_name: imageDetails.value.image_name,
+      image: imageDetails.value.image,
+      resolution: imageDetails.value.resolution,
+    });
+    console.log("Image updated successfully");
+    await getImages();
 
-    console.log("Uploaded and created successfully!");
+    console.log("Image updated and data refreshed successfully!");
   } catch (error) {
-    console.error("Error uploading image or creating document:", error);
+    console.error("Error updating image or refreshing data:", error);
   }
 }
 
-async function updateImage(image, event) {
-  const imageRef = doc(db, 'dimages', image.id);
-  await deleteDoc(imageRef)
-      .then(() => {
-        uploadImage(event.target.files[0]);
-        console.log("Image update successfully from Firestore");
-        getImages();
-      })
-      .catch((error) => {
-        console.error("Error updating image from Firebase Storage:", error);
-      });
-}
 onMounted(() => {
   getImages();
 })
@@ -96,7 +100,7 @@ onMounted(() => {
         <h3 class="w-56 text-center text-2xl bg-sky-300 rounded-full p-3 text-white">Dynamo Images</h3>
       </div>
 
-      <div class="grid grid-cols-3 gap-3 mt-4">
+      <div class="grid grid-cols-3 gap-8 mt-4">
         <div
             class="bg-gray-600 h-48 rounded-lg hover:bg-amber-200 flex items-center justify-center hover:shadow-md hover:shadow-blue-300"
             v-for="(image, index) in allImages"
