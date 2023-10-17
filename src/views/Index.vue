@@ -133,17 +133,15 @@ onMounted(() => {
 
       <div class="grid grid-cols-3 gap-8 mt-4">
         <div
-            class="bg-gray-600 h-48 rounded-lg hover:bg-amber-200 flex items-center justify-center hover:shadow-md hover:shadow-blue-300"
+            class="bg-gray-200 h-60 rounded-lg hover:bg-amber-200 hover:shadow-md hover:shadow-blue-300"
             v-for="(image, index) in allImages"
             :key="index"
         >
-          <div class="p-6">
-            <img :src="image.data().image" :alt="image.data().image_name">
+          <div>
+            <img class="object-cover object-top w-48" :src="image.data().image" :alt="image.data().image_name">
 
-            <input @change="updateImage(image, $event)" class="mt-2 rounded-md w-28" type="file">
+            <input @change="updateImage(image, $event)" type="file">
           </div>
-
-
         </div>
       </div>
 
